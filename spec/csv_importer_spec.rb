@@ -540,7 +540,7 @@ BOB@example.com,true,bob,,"
   end # describe ".after_build"
 
   describe ".after_save" do
-    it "is triggered after each save and supports multiple blocks" do
+    it "is triggered after each successful save and supports multiple blocks" do
       csv_content = "email,first_name,last_name
                      bob@example.com,bob,,
                      invalid,bob,,"
@@ -554,6 +554,60 @@ BOB@example.com,true,bob,,"
         end
 
         after_save do
+          saves_count += 1
+        end
+      end
+
+      expect {
+        import.run!
+      }.to change { success_array }.from([]).to([true])
+
+      expect(saves_count).to eq 1
+    end
+  end
+
+  describe ".after_error" do
+    it "is triggered after each unsuccessful save and supports multiple blocks" do
+      csv_content = "email,first_name,last_name
+                     bob@example.com,bob,,
+                     invalid,bob,,"
+
+      success_array = []
+      saves_count = 0
+
+      import = ImportUserCSV.new(content: csv_content) do
+        after_error do |user|
+          success_array << user.persisted?
+        end
+
+        after_error do
+          saves_count += 1
+        end
+      end
+
+      expect {
+        import.run!
+      }.to change { success_array }.from([]).to([true])
+
+      expect(saves_count).to eq 1
+    end
+  end
+
+  describe ".after_complete" do
+    it "is triggered after each row processed and supports multiple blocks" do
+      csv_content = "email,first_name,last_name
+                     bob@example.com,bob,,
+                     invalid,bob,,"
+
+      success_array = []
+      saves_count = 0
+
+      import = ImportUserCSV.new(content: csv_content) do
+        after_complete do |user|
+          success_array << user.persisted?
+        end
+
+        after_complete do
           saves_count += 1
         end
       end

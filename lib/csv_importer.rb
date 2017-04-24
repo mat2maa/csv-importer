@@ -28,9 +28,10 @@ require "csv_importer/dsl"
 #   puts report.message
 #
 module CSVImporter
-  class Error < StandardError; end
+  class Error < StandardError;
+  end
 
-   # Setup DSL and config object
+  # Setup DSL and config object
   def self.included(klass)
     klass.extend(Dsl)
     klass.define_singleton_method(:config) do
@@ -91,7 +92,9 @@ module CSVImporter
   def run!
     if valid_header?
       @report = Runner.call(rows: rows, when_invalid: config.when_invalid,
-                            after_save_blocks: config.after_save_blocks)
+                            after_save_blocks: config.after_save_blocks,
+                            after_error_blocks: config.after_error_blocks,
+                            after_complete_blocks: config.after_complete_blocks)
     else
       @report
     end

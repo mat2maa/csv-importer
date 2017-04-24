@@ -12,6 +12,8 @@ module CSVImporter
     attribute :rows, Array[Row]
     attribute :when_invalid, Symbol
     attribute :after_save_blocks, Array[Proc], default: []
+    attribute :after_error_blocks, Array[Proc], default: []
+    attribute :after_complete_blocks, Array[Proc], default: []
 
     attribute :report, Report, default: proc { Report.new }
 
@@ -42,7 +44,7 @@ module CSVImporter
     end
 
     def persist_rows!
-      transaction do
+      Neo4j::ActiveBase.run_transaction do
         rows.each do |row|
           tags = []
 
@@ -57,13 +59,15 @@ module CSVImporter
           else
             if row.model.save
               tags << :success
+              after_save_blocks.each { |block| block.call(row.model) }
             else
               tags << :failure
+              after_error_blocks.each { |block| block.call(row.model) }
             end
           end
 
           add_to_report(row, tags)
-          after_save_blocks.each { |block| block.call(row.model) }
+          after_complete_blocks.each { |block| block.call(row.model) }
         end
       end
     end
@@ -89,10 +93,6 @@ module CSVImporter
       bucket << row
 
       raise ImportAborted if abort_when_invalid? && tags[1] == :failure
-    end
-
-    def transaction(&block)
-      rows.first.model.class.transaction(&block)
     end
   end
 end

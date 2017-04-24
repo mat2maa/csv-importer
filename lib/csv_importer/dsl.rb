@@ -27,5 +27,13 @@ module CSVImporter
     def after_save(&block)
       config.after_save(block)
     end
+
+    def after_error(&block)
+      config.after_error(block)
+    end
+
+    def after_complete(&block)
+      config.after_complete(block)
+    end
   end
 end
